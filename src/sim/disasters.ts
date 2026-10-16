@@ -29,6 +29,9 @@ export function ignite(w: World, x: number, y: number, months = 2 + w.rng.int(2)
 /** Chance per month that a burning tile ignites each flammable neighbour (before fire coverage). */
 const SPREAD_CHANCE = 0.06;
 
+/** Fire coverage (0-1) above which a tile counts as protected by a fire station. */
+export const FIRE_COVERED = 0.08;
+
 /**
  * Monthly fire behaviour: random outbreaks, spread, burning out into rubble. Spread is kept below
  * one new fire per burning tile on average, so fires die out on their own unless a disaster
@@ -62,15 +65,18 @@ export function updateFires(w: World): void {
     const x = i % w.size;
     const y = (i / w.size) | 0;
     const cover = w.fireCoverage[i] / 255;
-    // Firefighters nearby put fires out.
-    if (w.rng.chance(cover * 0.8)) {
+    // Inside a fire station's range firefighters fight the fire: most fires are out within
+    // a month or two, and they cannot spread.
+    if (cover > FIRE_COVERED && w.rng.chance(Math.min(0.95, 0.45 + cover))) {
       w.fire[i] = 0;
       continue;
     }
-    for (const [dx, dy] of DIRS) {
-      const nx = x + dx;
-      const ny = y + dy;
-      if (w.inBounds(nx, ny) && w.rng.chance(SPREAD_CHANCE * (1 - cover))) ignite(w, nx, ny);
+    if (cover <= FIRE_COVERED * 2) {
+      for (const [dx, dy] of DIRS) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (w.inBounds(nx, ny) && w.rng.chance(SPREAD_CHANCE * (1 - cover))) ignite(w, nx, ny);
+      }
     }
     w.fire[i]--;
     if (w.fire[i] === 0) w.destroyTile(x, y);

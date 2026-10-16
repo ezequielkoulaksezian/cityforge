@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { hash2 } from "../sim/random";
 import { K, T } from "../sim/types";
 import { isRail, isRoad, type World } from "../sim/world";
+import { FIRE_COVERED } from "../sim/disasters";
 import { buildingParts, chimneyTops } from "./buildings";
 import { PartSet, Pool, type Part } from "./pool";
 
@@ -40,6 +41,7 @@ export class CityView {
   private fires: Pool;
   private cars: Pool;
   private flags: Pool;
+  private trucks: Pool;
   private actorsGroup = new THREE.Group();
   private smoke: THREE.Points;
   private smokeEmitters: [number, number, number][] = [];
@@ -99,6 +101,7 @@ export class CityView {
     this.fires = new Pool(this.group, "cone", 256, false);
     this.cars = new Pool(this.group, "box", 1024, false);
     this.flags = new Pool(this.group, "box", 128, false);
+    this.trucks = new Pool(this.group, "box", 128, false);
 
     this.wires = new THREE.LineSegments(
       new THREE.BufferGeometry(),
@@ -503,6 +506,20 @@ export class CityView {
       }
     }
     this.fires.end();
+
+    // Fire trucks at fires inside a fire station's range, with flashing lights.
+    this.trucks.begin();
+    const flash = Math.floor(t * 4) % 2 === 0;
+    for (const i of this.fireTiles) {
+      if (this.world.fireCoverage[i] / 255 <= FIRE_COVERED) continue;
+      const x = this.wx(i % this.size) + 0.5;
+      const z = this.wx((i / this.size) | 0) + 0.5;
+      this.trucks.add({ shape: "box", x: x + 0.62, y: 0, z: z + 0.1, sx: 0.22, sy: 0.18, sz: 0.48, color: "#d32f2f" });
+      this.trucks.add({ shape: "box", x: x + 0.62, y: 0.18, z: z - 0.06, sx: 0.16, sy: 0.05, sz: 0.08, color: flash ? "#4fc3f7" : "#ff1744", glow: true });
+      // Water spray toward the fire.
+      this.trucks.add({ shape: "box", x: x + 0.32, y: 0.32, z: z + 0.1, sx: 0.5, sy: 0.03, sz: 0.03, color: "#bfe6ff", glow: true });
+    }
+    this.trucks.end();
 
     // Cars move back and forth across their tile.
     this.cars.begin();
