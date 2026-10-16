@@ -17,7 +17,7 @@ function flammable(w: World, i: number): boolean {
   return k === K.Building || k === K.Park || (k === K.None && w.terrain[i] === T.Forest);
 }
 
-export function ignite(w: World, x: number, y: number, months = 4 + w.rng.int(4)): boolean {
+export function ignite(w: World, x: number, y: number, months = 2 + w.rng.int(2)): boolean {
   if (!w.inBounds(x, y)) return false;
   const i = w.idx(x, y);
   if (!flammable(w, i) || w.fire[i]) return false;
@@ -26,18 +26,25 @@ export function ignite(w: World, x: number, y: number, months = 4 + w.rng.int(4)
   return true;
 }
 
-/** Monthly fire behaviour: random outbreaks, spread, burning out into rubble. */
+/** Chance per month that a burning tile ignites each flammable neighbour (before fire coverage). */
+const SPREAD_CHANCE = 0.06;
+
+/**
+ * Monthly fire behaviour: random outbreaks, spread, burning out into rubble. Spread is kept below
+ * one new fire per burning tile on average, so fires die out on their own unless a disaster
+ * starts many at once; fire stations put them out much faster.
+ */
 export function updateFires(w: World): void {
   const n = w.size * w.size;
   const diff = DIFFICULTY[w.difficulty];
 
-  // Random outbreak in a building; fire coverage makes it less likely.
+  // Random outbreak in a developed building; fire coverage makes it less likely.
   if (w.buildings.size > 4 && w.rng.chance(diff.fireChance * 0.25)) {
     const ids = [...w.buildings.keys()];
     const b = w.buildings.get(ids[w.rng.int(ids.length)])!;
     const x = b.x + w.rng.int(b.size);
     const y = b.y + w.rng.int(b.size);
-    if (w.rng.next() > w.fireCoverage[w.idx(x, y)] / 200 && ignite(w, x, y)) {
+    if (b.level > 0 && w.rng.next() > w.fireCoverage[w.idx(x, y)] / 200 && ignite(w, x, y)) {
       w.notify("fire", "danger", { x, y, cooldown: 2 });
     }
   }
@@ -47,18 +54,23 @@ export function updateFires(w: World): void {
   if (!burning.length) return;
 
   for (const i of burning) {
+    // The building already burned down (or was bulldozed): nothing left to burn here.
+    if (!flammable(w, i)) {
+      w.fire[i] = 0;
+      continue;
+    }
     const x = i % w.size;
     const y = (i / w.size) | 0;
     const cover = w.fireCoverage[i] / 255;
-    // Firefighters nearby put fires out faster.
-    if (cover > 0.3 && w.rng.chance(cover * 0.6)) {
+    // Firefighters nearby put fires out.
+    if (w.rng.chance(cover * 0.8)) {
       w.fire[i] = 0;
       continue;
     }
     for (const [dx, dy] of DIRS) {
       const nx = x + dx;
       const ny = y + dy;
-      if (w.inBounds(nx, ny) && w.rng.chance(0.28 * (1 - cover))) ignite(w, nx, ny);
+      if (w.inBounds(nx, ny) && w.rng.chance(SPREAD_CHANCE * (1 - cover))) ignite(w, nx, ny);
     }
     w.fire[i]--;
     if (w.fire[i] === 0) w.destroyTile(x, y);
