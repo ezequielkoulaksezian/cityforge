@@ -349,8 +349,9 @@ fieldset {
 }
 
 .speeds button {
-  letter-spacing: -0.15em;
   min-width: 34px;
+  display: grid;
+  place-items: center;
 }
 
 .speeds button:hover,

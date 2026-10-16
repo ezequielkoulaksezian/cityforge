@@ -5,7 +5,7 @@ import { growthScore, footprintAverage } from "../sim/zones";
 import { isRail, isRoad } from "../sim/world";
 import type { TKey } from "../i18n";
 import { money, num, useGame } from "./context";
-import { ToolIcon } from "./icons";
+import { SpeedIcon, ToolIcon } from "./icons";
 import { Panels, type PanelId } from "./Panels";
 import { StartScreen } from "./StartScreen";
 
@@ -55,11 +55,11 @@ function Hud({ panel, onPanel }: { panel: PanelId | null; onPanel: (p: PanelId) 
   const c = world.census;
   const month = world.month % 12;
   const year = START_YEAR + Math.floor(world.month / 12);
-  const speeds: { s: Speed; key: TKey; icon: string }[] = [
-    { s: 0, key: "hud.pause", icon: "❚❚" },
-    { s: 1, key: "hud.slow", icon: "▶" },
-    { s: 2, key: "hud.normal", icon: "▶▶" },
-    { s: 3, key: "hud.fast", icon: "▶▶▶" },
+  const speeds: { s: Speed; key: TKey }[] = [
+    { s: 0, key: "hud.pause" },
+    { s: 1, key: "hud.slow" },
+    { s: 2, key: "hud.normal" },
+    { s: 3, key: "hud.fast" },
   ];
   const menus: { id: PanelId; key: TKey }[] = [
     { id: "budget", key: "menu.budget" },
@@ -115,7 +115,7 @@ function Hud({ panel, onPanel }: { panel: PanelId | null; onPanel: (p: PanelId) 
             aria-label={t(s.key)}
             onClick={() => game.setSpeed(s.s)}
           >
-            {s.icon}
+            <SpeedIcon speed={s.s} />
           </button>
         ))}
       </div>

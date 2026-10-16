@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { stepMonth } from "./simulation";
 import { updatePower } from "./power";
 import { deserialize, serialize } from "./save";
+import { demoCity } from "./demo";
 import { K, T } from "./types";
 import { World } from "./world";
 
@@ -121,5 +122,16 @@ describe("save files", () => {
     expect([...copy.kind]).toEqual([...w.kind]);
     stepMonth(copy);
     expect(copy.month).toBe(w.month + 1);
+  });
+});
+
+describe("example city", () => {
+  it("is a healthy town where almost every zone has power", () => {
+    const w = demoCity("Demo");
+    const c = w.census;
+    console.log(`demo: residents=${c.residents} unpowered=${c.unpoweredZones}/${c.zones.R + c.zones.C + c.zones.I} capacity=${c.powerCapacity} demand=${c.powerDemand} funds=${w.funds} score=${w.score}`);
+    // Fires can cut a few zone chains; nearly everything else must stay powered.
+    expect(c.unpoweredZones / (c.zones.R + c.zones.C + c.zones.I)).toBeLessThan(0.1);
+    expect(c.residents).toBeGreaterThan(5000);
   });
 });

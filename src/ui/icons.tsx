@@ -2,6 +2,25 @@ import type { ToolId } from "../sim/constants";
 
 const S = { width: 22, height: 22, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 
+/** Pause / slow / normal / fast icons for the speed buttons. */
+export function SpeedIcon({ speed }: { speed: 0 | 1 | 2 | 3 }) {
+  if (speed === 0)
+    return (
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+        <rect x="2" y="2" width="3.5" height="10" rx="1" />
+        <rect x="8.5" y="2" width="3.5" height="10" rx="1" />
+      </svg>
+    );
+  const w = 6 * speed + 4;
+  return (
+    <svg width={w + 2} height="14" viewBox={`0 0 ${w + 2} 14`} fill="currentColor" aria-hidden="true">
+      {Array.from({ length: speed }, (_, k) => (
+        <path key={k} d={`M${1 + k * 6} 2l7 5-7 5z`} />
+      ))}
+    </svg>
+  );
+}
+
 /** Simple pictograms for every tool. */
 export function ToolIcon({ id }: { id: ToolId }) {
   switch (id) {
@@ -39,8 +58,7 @@ export function ToolIcon({ id }: { id: ToolId }) {
     case "power":
       return (
         <svg {...S}>
-          <path d="M12 3v18M7 7h10M8 11h8" />
-          <path d="m9 21 3-10 3 10" />
+          <path d="M13 2 5 13h6l-1 9 8-11h-6z" />
         </svg>
       );
     case "park":
@@ -104,8 +122,9 @@ export function ToolIcon({ id }: { id: ToolId }) {
     case "nuclear":
       return (
         <svg {...S}>
-          <circle cx="12" cy="12" r="2" />
-          <path d="M12 10V4a8 8 0 0 1 6.9 4L13.7 11M10.3 11 5.1 8A8 8 0 0 1 12 4M12 14l3 5.2a8 8 0 0 1-6 0L12 14" />
+          <path d="M4 21c1-4 1-9-1-14h7c-2 5-2 10-1 14z" />
+          <path d="M13 21c1-4 1-8-1-12h7c-2 4-2 8-1 12z" />
+          <path d="M2 21h20" />
         </svg>
       );
     case "seaport":

@@ -20,6 +20,7 @@ export function demoCity(name: string, seed = 20261015, years = 16): World {
 
   w.funds = 1_000_000;
   w.apply("nuclear", x0 - 6, y0);
+  w.apply("nuclear", x0 - 6, y0 + 12);
   w.apply("coal", x0 - 6, y0 + 6);
   for (let y = y0; y <= y0 + span; y += 4) w.applyMany("road", World.linePath(x0, y, x0 + span, y));
   for (const x of [x0, x0 + 19, x0 + 37, x0 + span]) w.applyMany("road", World.linePath(x, y0, x, y0 + span));
@@ -27,6 +28,10 @@ export function demoCity(name: string, seed = 20261015, years = 16): World {
   w.applyMany("power", World.linePath(x0 - 2, y0 + 1, x0 + 1, y0 + 1));
   w.applyMany("power", World.linePath(x0 + 1, y0 + 1, x0 + 1, y0 + span));
   w.applyMany("power", World.linePath(x0 - 2, y0 + 8, x0 + 1, y0 + 8));
+  w.applyMany("power", World.linePath(x0 - 2, y0 + 14, x0 + 1, y0 + 14));
+  // Roads don't conduct power: run lines along the cross streets so every block is connected.
+  w.applyMany("power", World.linePath(x0 + 1, y0, x0 + 37, y0));
+  for (const x of [x0 + 19, x0 + 37]) w.applyMany("power", World.linePath(x, y0, x, y0 + span));
 
   const layout = ["R", "R", "C", "R", "I", "R", "C", "R", "R", "I"] as const;
   let n = 0;

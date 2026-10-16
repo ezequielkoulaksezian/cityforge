@@ -210,7 +210,7 @@ const es = {
   "msg.needFire": "La ciudad crece: conviene construir un cuartel de bomberos.",
   "help.title": "Cómo jugar",
   "help.body":
-    "1. Construí una central de carbón y llevá energía con tendido eléctrico.\n2. Trazá calles y marcá zonas residenciales (verde), comerciales (azul) e industriales (amarillo) pegadas a las calles.\n3. Las zonas crecen solas si tienen energía, acceso a transporte y demanda (barras R C I).\n4. Al principio la industria tira del crecimiento; después residencias y comercio.\n5. Cuidá el valor del suelo: parques y agua lo suben; contaminación y delito lo bajan.\n6. Cada enero cobrás impuestos y pagás policía, bomberos y calles. Ajustá el presupuesto.\n7. Las ciudades grandes necesitan estadio, puerto y aeropuerto.",
+    "1. Construí una central de carbón y llevá energía con tendido eléctrico. Las calles no conducen electricidad: las zonas pegadas entre sí sí, así que tendé cable a lo largo de las calles que corten tus manzanas.\n2. Trazá calles y marcá zonas residenciales (verde), comerciales (azul) e industriales (amarillo) pegadas a las calles.\n3. Las zonas crecen solas si tienen energía, acceso a transporte y demanda (barras R C I).\n4. Al principio la industria tira del crecimiento; después residencias y comercio.\n5. Cuidá el valor del suelo: parques y agua lo suben; contaminación y delito lo bajan.\n6. Cada enero cobrás impuestos y pagás policía, bomberos y calles. Ajustá el presupuesto.\n7. Las ciudades grandes necesitan estadio, puerto y aeropuerto.",
   "help.controls": "Controles",
   "help.controlsBody":
     "Clic izquierdo: usar herramienta · Arrastrar: calles, vías, tendido y topadora en línea o área\nClic derecho o rueda presionada + arrastrar: mover la cámara · Rueda: zoom · Q / E: rotar\nWASD o flechas: mover · Espacio: pausa · 1–0 y letras: herramientas · Esc: cancelar",
@@ -431,7 +431,7 @@ const en: Dict = {
   "msg.needFire": "The city is growing: build a fire station.",
   "help.title": "How to play",
   "help.body":
-    "1. Build a coal power plant and carry power with power lines.\n2. Lay roads and zone residential (green), commercial (blue) and industrial (yellow) areas next to them.\n3. Zones grow on their own when they have power, transport access and demand (the R C I bars).\n4. Industry drives early growth; then housing and commerce follow.\n5. Watch land value: parks and water raise it; pollution and crime lower it.\n6. Every January you collect taxes and pay for police, fire and roads. Adjust the budget.\n7. Big cities need a stadium, a seaport and an airport.",
+    "1. Build a coal power plant and carry power with power lines. Roads don't conduct power, but adjacent zones do, so run lines along streets that split your blocks.\n2. Lay roads and zone residential (green), commercial (blue) and industrial (yellow) areas next to them.\n3. Zones grow on their own when they have power, transport access and demand (the R C I bars).\n4. Industry drives early growth; then housing and commerce follow.\n5. Watch land value: parks and water raise it; pollution and crime lower it.\n6. Every January you collect taxes and pay for police, fire and roads. Adjust the budget.\n7. Big cities need a stadium, a seaport and an airport.",
   "help.controls": "Controls",
   "help.controlsBody":
     "Left click: use tool · Drag: roads, rail, power lines and bulldozer in lines or areas\nRight or middle drag: move the camera · Wheel: zoom · Q / E: rotate\nWASD or arrows: move · Space: pause · 1–0 and letters: tools · Esc: cancel",
