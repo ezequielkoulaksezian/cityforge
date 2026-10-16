@@ -30,6 +30,8 @@ export function App() {
     const g = new Game(canvas.current, pending);
     g.lang = lang;
     setGame(g);
+    // Handy for debugging in development builds only.
+    if (import.meta.env.DEV) (window as unknown as { game: Game }).game = g;
     return () => g.dispose();
   }, [pending]);
 

@@ -47,6 +47,9 @@ export function demoCity(name: string, seed = 20261015, years = 16): World {
   w.apply("fire", x0 + 24, y0 + span + 2);
   w.apply("stadium", x0 + 30, y0 + span + 2);
   w.applyMany("road", World.linePath(x0 + 20, y0 + span + 1, x0 + 34, y0 + span + 1));
+  // Power for the services south of town: down the cross street, then along their back.
+  w.applyMany("power", World.linePath(x0 + 19, y0 + span, x0 + 19, y0 + span + 5));
+  w.applyMany("power", World.linePath(x0 + 19, y0 + span + 5, x0 + 29, y0 + span + 5));
   for (let k = 0; k < 6; k++) w.apply("park", x0 + 40 + k, y0 + 28);
 
   w.funds = 15_000;

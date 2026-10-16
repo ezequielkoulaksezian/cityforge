@@ -1,4 +1,5 @@
 import { DIFFICULTY } from "./constants";
+import { dispatchTrucks, FIRE_COVERED, isContained } from "./firefighters";
 import { K, T } from "./types";
 import type { World } from "./world";
 
@@ -29,8 +30,6 @@ export function ignite(w: World, x: number, y: number, months = 2 + w.rng.int(2)
 /** Chance per month that a burning tile ignites each flammable neighbour (before fire coverage). */
 const SPREAD_CHANCE = 0.06;
 
-/** Fire coverage (0-1) above which a tile counts as protected by a fire station. */
-export const FIRE_COVERED = 0.08;
 
 /**
  * Monthly fire behaviour: random outbreaks, spread, burning out into rubble. Spread is kept below
@@ -55,6 +54,7 @@ export function updateFires(w: World): void {
   const burning: number[] = [];
   for (let i = 0; i < n; i++) if (w.fire[i]) burning.push(i);
   if (!burning.length) return;
+  dispatchTrucks(w);
 
   for (const i of burning) {
     // The building already burned down (or was bulldozed): nothing left to burn here.
@@ -64,10 +64,11 @@ export function updateFires(w: World): void {
     }
     const x = i % w.size;
     const y = (i / w.size) | 0;
+    // A fire engine is on its way or at work: the fire is contained until the crew puts it out.
+    if (isContained(w, i)) continue;
     const cover = w.fireCoverage[i] / 255;
-    // Inside a fire station's range firefighters fight the fire: most fires are out within
-    // a month or two, and they cannot spread.
-    if (cover > FIRE_COVERED && w.rng.chance(Math.min(0.95, 0.45 + cover))) {
+    // In range but unreachable by road: firefighters on foot are slower.
+    if (cover > FIRE_COVERED && w.rng.chance(0.15 + cover * 0.4)) {
       w.fire[i] = 0;
       continue;
     }

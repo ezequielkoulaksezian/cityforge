@@ -133,5 +133,7 @@ describe("example city", () => {
     // Fires can cut a few zone chains; nearly everything else must stay powered.
     expect(c.unpoweredZones / (c.zones.R + c.zones.C + c.zones.I)).toBeLessThan(0.1);
     expect(c.residents).toBeGreaterThan(5000);
+    for (const b of w.buildings.values())
+      if (b.type === "police" || b.type === "fire" || b.type === "stadium") expect(b.powered).toBe(true);
   });
 });

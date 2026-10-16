@@ -19,6 +19,7 @@ import {
   type BudgetReport,
   type Census,
   type Evaluation,
+  type FireTruck,
   type Funding,
   type GameSettings,
   type History,
@@ -112,6 +113,8 @@ export class World {
   /** Month when each message key was last shown, to avoid spamming. */
   messageCooldown: Partial<Record<MessageId, number>> = {};
   actors: Actor[] = [];
+  trucks: FireTruck[] = [];
+  nextTruckId = 1;
   settings: GameSettings = { disasters: true, shadows: true };
   rng: Random;
   /** Round-robin cursor for traffic trips. */

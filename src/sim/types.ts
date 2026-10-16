@@ -111,6 +111,9 @@ export type MessageId =
   | "fundingCut"
   | "classUp"
   | "fire"
+  | "fireDispatched"
+  | "fireOut"
+  | "fireUnreachable"
   | "flood"
   | "tornado"
   | "earthquake"
@@ -150,6 +153,23 @@ export type Actor = {
   dy: number;
   /** Simulation steps left. */
   life: number;
+};
+
+/** A fire engine driving from its station to a fire, fighting it, and driving back. */
+export type FireTruck = {
+  id: number;
+  stationId: number;
+  /** Road tiles from the station to the fire (indices into the map). */
+  path: number[];
+  /** Position along the path, in tiles (fractional while driving). */
+  pos: number;
+  state: "going" | "fighting" | "returning";
+  /** Burning tile the truck was sent to. */
+  target: number;
+  /** Tile currently being sprayed, or -1. */
+  spraying: number;
+  /** Actor steps spent at the fire, used to pace the work. */
+  work: number;
 };
 
 export type GameSettings = {

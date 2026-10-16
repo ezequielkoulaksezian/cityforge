@@ -3,6 +3,7 @@ import { deteriorateRoads, runYearlyBudget } from "./budget";
 import { cityClassFor, takeCensus } from "./census";
 import { updateDemand } from "./demand";
 import { stepActors, updateDisasters, updateFires } from "./disasters";
+import { stepTrucks } from "./firefighters";
 import { evaluateCity } from "./evaluation";
 import { updateMaps } from "./maps";
 import { updatePower } from "./power";
@@ -97,10 +98,13 @@ export class Simulation {
   tick(dt: number, speed: Speed): boolean {
     if (speed === 0) return false;
     let changed = false;
+    // Actors (tornadoes, monsters, fire engines) move faster at higher game speeds.
+    const actorPeriod = speed === 3 ? 60 : speed === 2 ? 110 : 160;
     this.actorClock += dt;
-    while (this.actorClock >= 120) {
-      this.actorClock -= 120;
+    while (this.actorClock >= actorPeriod) {
+      this.actorClock -= actorPeriod;
       changed = stepActors(this.world) || changed;
+      changed = stepTrucks(this.world) || changed;
     }
     this.monthClock += Math.min(dt, 1000);
     const period = MS_PER_MONTH[speed];

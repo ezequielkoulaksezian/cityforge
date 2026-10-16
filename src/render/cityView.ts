@@ -2,7 +2,6 @@ import * as THREE from "three";
 import { hash2 } from "../sim/random";
 import { K, T } from "../sim/types";
 import { isRail, isRoad, type World } from "../sim/world";
-import { FIRE_COVERED } from "../sim/disasters";
 import { buildingParts, chimneyTops } from "./buildings";
 import { PartSet, Pool, type Part } from "./pool";
 
@@ -41,7 +40,8 @@ export class CityView {
   private fires: Pool;
   private cars: Pool;
   private flags: Pool;
-  private trucks: Pool;
+  private trucksGroup = new THREE.Group();
+  private truckObjects = new Map<number, TruckModel>();
   private actorsGroup = new THREE.Group();
   private smoke: THREE.Points;
   private smokeEmitters: [number, number, number][] = [];
@@ -101,7 +101,7 @@ export class CityView {
     this.fires = new Pool(this.group, "cone", 256, false);
     this.cars = new Pool(this.group, "box", 1024, false);
     this.flags = new Pool(this.group, "box", 128, false);
-    this.trucks = new Pool(this.group, "box", 128, false);
+    this.group.add(this.trucksGroup);
 
     this.wires = new THREE.LineSegments(
       new THREE.BufferGeometry(),
@@ -507,19 +507,7 @@ export class CityView {
     }
     this.fires.end();
 
-    // Fire trucks at fires inside a fire station's range, with flashing lights.
-    this.trucks.begin();
-    const flash = Math.floor(t * 4) % 2 === 0;
-    for (const i of this.fireTiles) {
-      if (this.world.fireCoverage[i] / 255 <= FIRE_COVERED) continue;
-      const x = this.wx(i % this.size) + 0.5;
-      const z = this.wx((i / this.size) | 0) + 0.5;
-      this.trucks.add({ shape: "box", x: x + 0.62, y: 0, z: z + 0.1, sx: 0.22, sy: 0.18, sz: 0.48, color: "#d32f2f" });
-      this.trucks.add({ shape: "box", x: x + 0.62, y: 0.18, z: z - 0.06, sx: 0.16, sy: 0.05, sz: 0.08, color: flash ? "#4fc3f7" : "#ff1744", glow: true });
-      // Water spray toward the fire.
-      this.trucks.add({ shape: "box", x: x + 0.32, y: 0.32, z: z + 0.1, sx: 0.5, sy: 0.03, sz: 0.03, color: "#bfe6ff", glow: true });
-    }
-    this.trucks.end();
+    this.updateTrucks(t, zoom);
 
     // Cars move back and forth across their tile.
     this.cars.begin();
@@ -568,6 +556,78 @@ export class CityView {
     (this.smoke.material as THREE.ShaderMaterial).uniforms.uScale.value = (canvasH / zoom) * 0.9;
 
     this.updateActors(t);
+  }
+
+  /** Places every fire engine along its road route and animates crews, lights and water. */
+  private updateTrucks(t: number, zoom: number): void {
+    const w = this.world;
+    const alive = new Set(w.trucks.map((tr) => tr.id));
+    for (const [id, model] of this.truckObjects) {
+      if (!alive.has(id)) {
+        this.trucksGroup.remove(model.root);
+        this.truckObjects.delete(id);
+      }
+    }
+    // Keep engines readable when zoomed out.
+    const scale = Math.min(2.6, Math.max(1.35, zoom / 28));
+    const center = (i: number): [number, number] => [this.wx(i % this.size) + 0.5, this.wx((i / this.size) | 0) + 0.5];
+    for (const tr of w.trucks) {
+      let model = this.truckObjects.get(tr.id);
+      if (!model) {
+        model = makeFireTruck();
+        this.truckObjects.set(tr.id, model);
+        this.trucksGroup.add(model.root);
+      }
+      const last = tr.path.length - 1;
+      const k = Math.min(last, Math.floor(tr.pos));
+      const k2 = Math.min(last, k + 1);
+      const f = tr.pos - k;
+      const [ax, az] = center(tr.path[k]);
+      const [bx, bz] = center(tr.path[k2]);
+      model.root.position.set(ax + (bx - ax) * f, 0, az + (bz - az) * f);
+      // Face the direction of travel; when parked at the end, keep the heading of the last segment.
+      let px = bx - ax;
+      let pz = bz - az;
+      if (k2 === k && last > 0) {
+        const [cx, cz] = center(tr.path[last - 1]);
+        px = ax - cx;
+        pz = az - cz;
+      }
+      if (px || pz) model.body.rotation.y = Math.atan2(-pz, px) + (tr.state === "returning" ? Math.PI : 0);
+      model.body.scale.setScalar(scale);
+
+      const flash = Math.floor(t * 6) % 2 === 0;
+      (model.redLight.material as THREE.MeshStandardMaterial).emissiveIntensity = flash ? 3 : 0.2;
+      (model.blueLight.material as THREE.MeshStandardMaterial).emissiveIntensity = flash ? 0.2 : 3;
+      const pulse = 0.5 + Math.sin(t * 8) * 0.5;
+      model.beacon.position.y = 2.6 * scale + Math.sin(t * 3) * 0.15;
+      model.beacon.scale.setScalar(scale * (0.9 + pulse * 0.25));
+      model.ring.scale.setScalar(scale * (1 + pulse * 0.6));
+      (model.ring.material as THREE.MeshBasicMaterial).opacity = 0.55 - pulse * 0.35;
+
+      const fighting = tr.state === "fighting" && tr.spraying >= 0;
+      model.crew.visible = fighting;
+      model.spray.visible = fighting;
+      if (fighting) {
+        const [fx, fz] = center(tr.spraying);
+        const ox = model.root.position.x;
+        const oz = model.root.position.z;
+        const dx = fx - ox;
+        const dz = fz - oz;
+        const len = Math.hypot(dx, dz) || 1;
+        // Firefighters stand between the engine and the fire, hose aimed at it.
+        model.crew.position.set(dx / len * 0.55 * scale, 0, dz / len * 0.55 * scale);
+        model.crew.rotation.y = Math.atan2(-dz, dx);
+        model.crew.scale.setScalar(scale);
+        const sx = ox + model.crew.position.x;
+        const sz = oz + model.crew.position.z;
+        model.spray.children.forEach((drop, n) => {
+          const p = (t * 1.6 + n / model!.spray.children.length) % 1;
+          drop.position.set(sx + (fx - sx) * p - ox, 0.35 * scale + Math.sin(p * Math.PI) * 0.9 * scale, sz + (fz - sz) * p - oz);
+          drop.scale.setScalar(scale * (0.6 + p * 0.8));
+        });
+      }
+    }
   }
 
   private updateActors(t: number): void {
@@ -631,4 +691,108 @@ function makeMonster(): THREE.Group {
   g.add(body, head);
   g.traverse((o) => ((o as THREE.Mesh).castShadow = true));
   return g;
+}
+
+type TruckModel = {
+  root: THREE.Group;
+  body: THREE.Group;
+  redLight: THREE.Mesh;
+  blueLight: THREE.Mesh;
+  beacon: THREE.Mesh;
+  ring: THREE.Mesh;
+  crew: THREE.Group;
+  spray: THREE.Group;
+};
+
+/** A detailed fire engine (front along +x), its crew, water spray and markers that make it easy to spot. */
+function makeFireTruck(): TruckModel {
+  const mat = (color: string, extra: THREE.MeshStandardMaterialParameters = {}) =>
+    new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.15, ...extra });
+  const box = (sx: number, sy: number, sz: number, m: THREE.Material, x: number, y: number, z: number) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), m);
+    mesh.position.set(x, y, z);
+    mesh.castShadow = true;
+    return mesh;
+  };
+  const red = mat("#d61f1f");
+  const root = new THREE.Group();
+  const body = new THREE.Group();
+  root.add(body);
+
+  // Chassis, rear body and cab.
+  body.add(box(0.98, 0.08, 0.44, mat("#222222"), 0, 0.12, 0));
+  body.add(box(0.66, 0.34, 0.44, red, -0.15, 0.33, 0));
+  body.add(box(0.3, 0.3, 0.44, red, 0.33, 0.31, 0));
+  body.add(box(0.02, 0.15, 0.36, mat("#1e3a5f", { metalness: 0.6, roughness: 0.2 }), 0.485, 0.38, 0));
+  for (const z of [-0.223, 0.223]) {
+    body.add(box(0.94, 0.05, 0.005, mat("#ffffff"), 0, 0.26, z));
+    body.add(box(0.12, 0.1, 0.005, mat("#1e3a5f"), 0.36, 0.38, z));
+  }
+  // Ladder on the roof.
+  const steel = mat("#c9ced4", { metalness: 0.8, roughness: 0.3 });
+  for (const z of [-0.1, 0.1]) body.add(box(0.8, 0.03, 0.03, steel, -0.08, 0.53, z));
+  for (let k = 0; k < 7; k++) body.add(box(0.025, 0.025, 0.2, steel, -0.44 + k * 0.12, 0.53, 0));
+  // Wheels.
+  const tire = mat("#111111", { roughness: 0.9 });
+  for (const x of [-0.3, 0.3])
+    for (const z of [-0.22, 0.22]) {
+      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.07, 14), tire);
+      wheel.rotation.x = Math.PI / 2;
+      wheel.position.set(x, 0.1, z);
+      body.add(wheel);
+    }
+  // Light bar.
+  const redLight = box(0.08, 0.06, 0.12, mat("#ff1744", { emissive: "#ff1744", emissiveIntensity: 2 }), 0.33, 0.49, -0.09);
+  const blueLight = box(0.08, 0.06, 0.12, mat("#2979ff", { emissive: "#2979ff", emissiveIntensity: 2 }), 0.33, 0.49, 0.09);
+  body.add(redLight, blueLight);
+
+  // Floating beacon and a pulsing ring on the ground so the engine stands out from far away.
+  const beacon = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.22),
+    new THREE.MeshStandardMaterial({ color: "#ff3d00", emissive: "#ff3d00", emissiveIntensity: 2.2 }),
+  );
+  root.add(beacon);
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.55, 0.7, 32),
+    new THREE.MeshBasicMaterial({ color: "#ff1744", transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false }),
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.03;
+  root.add(ring);
+
+  // Two firefighters with helmets holding a hose.
+  const crew = new THREE.Group();
+  const coat = mat("#e2b007");
+  const helmet = mat("#d61f1f");
+  for (const [x, z] of [
+    [0, -0.12],
+    [-0.16, 0.08],
+  ]) {
+    const person = new THREE.Group();
+    const legs = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.16, 8), mat("#2b2b2b"));
+    legs.position.y = 0.08;
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.065, 0.18, 10), coat);
+    torso.position.y = 0.25;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), mat("#f1c27d"));
+    head.position.y = 0.38;
+    const hat = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), helmet);
+    hat.position.y = 0.39;
+    person.add(legs, torso, head, hat);
+    person.position.set(x, 0, z);
+    person.traverse((o) => ((o as THREE.Mesh).castShadow = true));
+    crew.add(person);
+  }
+  const hose = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.3, 6), mat("#555555"));
+  hose.rotation.z = -Math.PI / 2.4;
+  hose.position.set(0.14, 0.3, -0.12);
+  crew.add(hose);
+  root.add(crew);
+
+  // Water drops travelling in an arc from the hose to the fire.
+  const spray = new THREE.Group();
+  const water = new THREE.MeshBasicMaterial({ color: "#bfe9ff", transparent: true, opacity: 0.85 });
+  for (let k = 0; k < 14; k++) spray.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), water));
+  root.add(spray);
+
+  return { root, body, redLight, blueLight, beacon, ring, crew, spray };
 }

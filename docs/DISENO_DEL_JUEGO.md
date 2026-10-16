@@ -179,9 +179,14 @@ como barras en la interfaz.
 
 ## 11. Incendios y desastres
 
-- **Incendios**: cada mes pueden empezar en un edificio al azar; la probabilidad baja con la cobertura de bomberos. El
-  fuego se propaga a casillas vecinas inflamables y se apaga solo después de unos meses, o antes si hay bomberos cerca. Lo
-  quemado queda en escombros.
+- **Incendios**: cada mes puede empezar uno en un edificio construido al azar, con menos probabilidad si hay
+  cobertura de bomberos. El fuego se propaga poco (6% por vecina y por mes) y arde 2 o 3 meses; si no lo apagan,
+  el edificio queda en escombros.
+- **Camiones de bomberos**: cuando un incendio está dentro del radio de un cuartel, sale un camión (máximo dos por
+  cuartel) que recorre las calles hasta el edificio en llamas. Mientras va en camino y mientras trabaja, el fuego
+  queda contenido: no avanza ni se propaga. Al llegar, los bomberos apagan las casillas una por una con la manguera
+  y después el camión vuelve al cuartel. Si ninguna calle llega al incendio, se avisa, y los bomberos solo actúan a
+  pie, más despacio. El camión se ve con balizas, un faro flotante y un anillo pulsante para encontrarlo fácil.
 - **Desastres** (manual), que se pueden activar desde el menú o desactivar los aleatorios en opciones:
   - **Incendio**: empieza un fuego grande.
   - **Inundación**: el agua avanza sobre la tierra cercana durante unos meses y después baja; destruye lo que cubre.
